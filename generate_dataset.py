@@ -3,6 +3,9 @@ import numpy as np
 import random
 import os
 
+# 数据集根目录变量
+DATASET_DIR = 'datasets/3squares'
+
 # 兼容obb和seg任务
 def generate_image_and_labels(num_squares=3, img_size=640, is_train=True):
     img = np.ones((img_size, img_size, 3), dtype=np.uint8) * 255  # 白底
@@ -35,32 +38,43 @@ def generate_image_and_labels(num_squares=3, img_size=640, is_train=True):
     return img, labels
 
 # 创建目录结构
-os.makedirs('dataset/images/train', exist_ok=True)
-os.makedirs('dataset/images/val', exist_ok=True)
-os.makedirs('dataset/labels/train', exist_ok=True)
-os.makedirs('dataset/labels/val', exist_ok=True)
+os.makedirs(f'{DATASET_DIR}/images/train', exist_ok=True)
+os.makedirs(f'{DATASET_DIR}/images/val', exist_ok=True)
+os.makedirs(f'{DATASET_DIR}/images/test', exist_ok=True)
+os.makedirs(f'{DATASET_DIR}/labels/train', exist_ok=True)
+os.makedirs(f'{DATASET_DIR}/labels/val', exist_ok=True)
+os.makedirs(f'{DATASET_DIR}/labels/test', exist_ok=True)
 
 # 生成训练集 (800 张)
 for i in range(800):
     img, labels = generate_image_and_labels()
-    cv2.imwrite(f'dataset/images/train/img_{i}.jpg', img)
-    with open(f'dataset/labels/train/img_{i}.txt', 'w') as f:
+    cv2.imwrite(f'{DATASET_DIR}/images/train/img_{i}.jpg', img)
+    with open(f'{DATASET_DIR}/labels/train/img_{i}.txt', 'w') as f:
         for label in labels:
             f.write(' '.join(f'{x:.6f}' for x in label) + '\n')
 
 # 生成验证集 (200 张)
 for i in range(200):
     img, labels = generate_image_and_labels(is_train=False)
-    cv2.imwrite(f'dataset/images/val/img_{i}.jpg', img)
-    with open(f'dataset/labels/val/img_{i}.txt', 'w') as f:
+    cv2.imwrite(f'{DATASET_DIR}/images/val/img_{i}.jpg', img)
+    with open(f'{DATASET_DIR}/labels/val/img_{i}.txt', 'w') as f:
+        for label in labels:
+            f.write(' '.join(f'{x:.6f}' for x in label) + '\n')
+
+# 生成测试集 (100 张)
+for i in range(100):
+    img, labels = generate_image_and_labels(is_train=False)
+    cv2.imwrite(f'{DATASET_DIR}/images/test/img_{i}.jpg', img)
+    with open(f'{DATASET_DIR}/labels/test/img_{i}.txt', 'w') as f:
         for label in labels:
             f.write(' '.join(f'{x:.6f}' for x in label) + '\n')
 
 # 生成 data.yaml
-yaml_content = """
-path: dataset
+yaml_content = f"""
+path: {DATASET_DIR}
 train: images/train
 val: images/val
+test: images/test
 nc: 1
 names: ['square']
 """
