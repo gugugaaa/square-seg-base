@@ -6,7 +6,6 @@ import os
 # 数据集根目录变量
 DATASET_DIR = 'datasets/3squares'
 
-# 兼容obb和seg任务
 def generate_image_and_labels(num_squares=3, img_size=640, is_train=True):
     img = np.ones((img_size, img_size, 3), dtype=np.uint8) * 255  # 白底
     labels = []  # 存储标签行
