@@ -2,13 +2,30 @@ import cv2
 import numpy as np
 import random
 import os
+from shapely.geometry import Polygon
 
 # 数据集根目录变量
-DATASET_DIR = 'datasets/3squares'
+DATASET_DIR = 'datasets/yolo/5squares'
 
-def generate_image_and_labels(num_squares=3, img_size=640, is_train=True):
+def calculate_iou(box1, box2):
+    """计算两个正方形的相对 IOU，检测包含或重叠关系"""
+    poly1 = Polygon(box1)
+    poly2 = Polygon(box2)
+    intersection = poly1.intersection(poly2).area
+    
+    # 使用相对面积比：intersection相对于较小的多边形的比例
+    area1 = poly1.area
+    area2 = poly2.area
+    min_area = min(area1, area2)
+    
+    # 返回交集占较小多边形的比例，这样可以检测包含关系
+    return intersection / min_area if min_area > 0 else 0
+
+def generate_image_and_labels(num_squares=5, img_size=640, is_train=True):
     img = np.ones((img_size, img_size, 3), dtype=np.uint8) * 255  # 白底
     labels = []  # 存储标签行
+    boxes = []  # 存储已生成的正方形框
+    
     for _ in range(num_squares):
         for _ in range(100):
             size = random.randint(50, 200)  # 随机大小
@@ -18,16 +35,31 @@ def generate_image_and_labels(num_squares=3, img_size=640, is_train=True):
             rect = (center, (size, size), angle)
             box = cv2.boxPoints(rect)  # 获取 4 角点 [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
             box = box.astype(np.int32)  # 整数化
-            if np.all(
+            
+            # 检查边界
+            if not np.all(
                 (box[:, 0] >= 0)
                 & (box[:, 0] < img_size)
                 & (box[:, 1] >= 0)
                 & (box[:, 1] < img_size)
             ):
+                continue
+            
+            # 检查 IOU：与所有已有正方形的相对 IOU 都小于
+            iou_valid = True
+            for existing_box in boxes:
+                iou = calculate_iou(box, existing_box)
+                if iou >= 0.8:
+                    iou_valid = False
+                    break
+            
+            if iou_valid:
                 break
         else:
             continue
+        
         cv2.fillPoly(img, [box], (0, 0, 0))  # 填充黑色
+        boxes.append(box)  # 添加到已生成列表
         
         # 生成标签：class 0 + 归一化角点 (x/img_size, y/img_size)，扁平化
         norm_box = box.astype(np.float32) / img_size  # 归一化

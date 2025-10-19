@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 
-# 指定目录（假设数据集已生成）
-image_dir = 'datasets/3squares/images/train'
-label_dir = 'datasets/3squares/labels/train'
+# 指定目录
+image_dir = 'datasets/yolo/5squares/images/test'
+label_dir = 'datasets/yolo/5squares/labels/test'
 
 # 获取所有图像文件
 image_files = [f for f in os.listdir(image_dir) if f.endswith('.jpg')]

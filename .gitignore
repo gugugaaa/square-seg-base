@@ -4,3 +4,4 @@ data.yaml
 models/
 dataset.zip
 results/
+detectron2/
