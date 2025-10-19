@@ -15,7 +15,7 @@ cfg.merge_from_file(model_zoo.get_config_file(
     "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"
 ))  
 cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
-cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.75         # 推理置信度阈值  
+cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.8         # 推理置信度阈值  
 cfg.MODEL.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  
 cfg.MODEL.WEIGHTS = "results/ver3-detectron2-3squares/model_final.pth"
 
@@ -76,7 +76,7 @@ for idx, img in enumerate(results_list):
     mosaic[y_start:y_start+img_h, x_start:x_start+img_w] = img
 
 # 保存结果
-output_path = r"C:\Users\hsung\Pictures\result.png"
+output_path = r"C:\Users\hsung\Pictures\detectron2_mosaic_3.png"
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 cv2.imwrite(output_path, mosaic)
 print(f"马赛克拼接结果已保存到: {output_path}")
