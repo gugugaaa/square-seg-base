@@ -1,5 +1,5 @@
 import os
-from detectron2.data import MetadataCatalog
+from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.data.datasets import register_coco_instances
 from detectron2.engine import DefaultTrainer
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
@@ -10,8 +10,15 @@ from detectron2.data import build_detection_test_loader
 DATA_ROOT = "datasets/coco/3squares"
 TRAIN_JSON = os.path.join(DATA_ROOT, "instances_train.json")
 VAL_JSON = os.path.join(DATA_ROOT, "instances_val.json")
-IMAGE_ROOT = os.path.join("datasets/coco/3squares/images")  # 所有 split 共用
+IMAGE_ROOT = os.path.join("datasets/yolo/3squares/images")  # 所有 split 共用
 
+# 在注册前清除已存在的数据集
+if "square_train" in DatasetCatalog.list():
+    DatasetCatalog.remove("square_train")
+if "square_val" in DatasetCatalog.list():
+    DatasetCatalog.remove("square_val")
+
+# 然后重新注册
 register_coco_instances("square_train", {}, TRAIN_JSON, os.path.join(IMAGE_ROOT, "train"))
 register_coco_instances("square_val", {}, VAL_JSON, os.path.join(IMAGE_ROOT, "val"))
 MetadataCatalog.get("square_train").thing_classes = ["square"]
