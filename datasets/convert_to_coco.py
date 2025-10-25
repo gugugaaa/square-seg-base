@@ -12,7 +12,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # COCO categories
 CATEGORIES = [{
-    "id": 0,
+    "id": 1,
     "name": "square",
     "supercategory": "shape"
 }]
@@ -52,7 +52,7 @@ def convert_split(split):
                 annotations.append({
                     "id": ann_id,
                     "image_id": img_id,
-                    "category_id": int(parts[0]),
+                    "category_id": int(parts[0]) + 1,  # 类别ID从1开始
                     "segmentation": [coords],
                     "area": float(area),
                     "bbox": [float(x) for x in bbox],

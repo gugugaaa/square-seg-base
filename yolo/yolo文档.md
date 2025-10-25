@@ -51,8 +51,9 @@ names: ['square']           # 类名
 
 **安装：**
 ```bash
-pip install ultralytics
+pip install "ultralytics" "numpy<2.0.0"
 ```
+老版本matplotlib不支持numpy2+
 
 **Seg 训练：**
 ```python
