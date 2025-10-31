@@ -5,9 +5,9 @@ import cv2
 import numpy as np
 
 # 数据集根目录
-DATASET_DIR = 'datasets/yolo/3squares'
+DATASET_DIR = '../datasets/yolo/3squares'
 # 输出 COCO 文件目录
-OUTPUT_DIR = 'datasets/coco/3squares'
+OUTPUT_DIR = '../datasets/coco/3squares'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # COCO categories

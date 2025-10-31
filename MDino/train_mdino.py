@@ -1,59 +1,102 @@
-import os, sys, subprocess
+import os
+import sys
+from pathlib import Path
+
+import yaml
+
+BASE_DIR = Path(__file__).resolve().parent
+CONFIG_FILE = BASE_DIR / "mdino-config.yaml"
+
+with CONFIG_FILE.open("r", encoding="utf-8") as f:
+    SETTINGS = yaml.safe_load(f)
+
+
+def resolve_project_path(relative_path: str) -> Path:
+    return (BASE_DIR / relative_path).resolve()
+
+
+maskdino_repo = resolve_project_path(SETTINGS["maskdino"]["repo_path"])
+sys.path.insert(0, str(maskdino_repo))
+
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.data.datasets import register_coco_instances
 
-# 1) 数据注册同前
-DATA_ROOT = "/kaggle/input/squares-coco/3and5squares"
-TRAIN_JSON = os.path.join(DATA_ROOT, "instances_train.json")
-VAL_JSON = os.path.join(DATA_ROOT, "instances_val.json")
-IMAGE_ROOT = os.path.join("/kaggle/input/squares-yolo/3and5squares/images")
+train_json = resolve_project_path(SETTINGS["datasets"]["train_json"])
+val_json = resolve_project_path(SETTINGS["datasets"]["val_json"])
+train_images = resolve_project_path(SETTINGS["datasets"]["train_images"])
+val_images = resolve_project_path(SETTINGS["datasets"]["val_images"])
 
 for name in ["square_train", "square_val"]:
     if name in DatasetCatalog.list():
         DatasetCatalog.remove(name)
 
-register_coco_instances("square_train", {}, TRAIN_JSON, os.path.join(IMAGE_ROOT, "train"))
-register_coco_instances("square_val", {}, VAL_JSON, os.path.join(IMAGE_ROOT, "val"))
+register_coco_instances("square_train", {}, str(train_json), str(train_images))
+register_coco_instances("square_val", {}, str(val_json), str(val_images))
+
 MetadataCatalog.get("square_train").thing_classes = ["square"]
+MetadataCatalog.get("square_train").evaluator_type = "coco"
+MetadataCatalog.get("square_val").thing_classes = ["square"]
+MetadataCatalog.get("square_val").evaluator_type = "coco"
 
-# 2) 准备 MaskDINO 代码
 
-from detectron2.config import get_cfg
-from detectron2.engine import DefaultTrainer
-from detectron2.evaluation import COCOEvaluator, inference_on_dataset
-from detectron2.data import build_detection_test_loader
-from maskdino import add_maskdino_config
+def write_config_yaml(config_path: Path) -> None:
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    pretrained_weights_rel = SETTINGS["maskdino"]["pretrained_weights"]
+    output_dir_rel = SETTINGS["maskdino"]["output_dir"]
+    output_dir_abs = (maskdino_repo / Path(output_dir_rel)).resolve()
+    output_dir_abs.mkdir(parents=True, exist_ok=True)
 
-cfg = get_cfg()
-add_maskdino_config(cfg)
-# 3) 合并 COCO 实例分割配置（R50 50ep 示例）
-cfg.merge_from_file("MaskDINO/configs/coco/instance-segmentation/maskdino_R50_bs16_50ep_3s_dowsample1_2048.yaml")
+    config_content = f"""_BASE_: "{SETTINGS["maskdino"]["base_config"]}"
+DATASETS:
+  TRAIN: ("square_train",)
+  TEST: ("square_val",)
+DATALOADER:
+  NUM_WORKERS: 4
+MODEL:
+  WEIGHTS: "{pretrained_weights_rel}"
+  SEM_SEG_HEAD:
+    NUM_CLASSES: 1
+SOLVER:
+  IMS_PER_BATCH: 4
+  BASE_LR: 0.0001
+  MAX_ITER: 2000
+  STEPS: (1500, )
+  GAMMA: 0.1
+  WARMUP_ITERS: 100
+  AMP:
+    ENABLED: True
+  CHECKPOINT_PERIOD: 500
+INPUT:
+  MASK_FORMAT: "polygon"
+  MIN_SIZE_TRAIN: (320, 352, 288)
+  MAX_SIZE_TRAIN: 384
+  MIN_SIZE_TEST: 320
+  MAX_SIZE_TEST: 384
+TEST:
+  EVAL_PERIOD: 500
+OUTPUT_DIR: "{output_dir_rel}"
+"""
+    with config_path.open("w", encoding="utf-8") as f:
+        f.write(config_content)
+    print(f"配置文件已生成: {config_path}")
 
-# 4) 绑定你的数据与超参
-cfg.DATASETS.TRAIN = ("square_train",)
-cfg.DATASETS.TEST = ("square_val",)
-cfg.DATALOADER.NUM_WORKERS = 2
 
-# 可选：预训练权重（建议使用以加速收敛）
-# cfg.MODEL.WEIGHTS = "/path/to/maskdino_pretrained.pth"
-cfg.MODEL.WEIGHTS = ""
+if __name__ == "__main__":
+    generated_config = BASE_DIR / "configs/square_instance.yaml"
+    write_config_yaml(generated_config)
 
-# 从白色背景中分割黑色实心正方形
-cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES = 1
+    os.chdir(maskdino_repo)
 
-cfg.SOLVER.IMS_PER_BATCH = 2
-cfg.SOLVER.BASE_LR = 0.00025
-cfg.SOLVER.MAX_ITER = 3000
-cfg.SOLVER.STEPS = []
-cfg.INPUT.MASK_FORMAT = "polygon"
+    from train_net import main  # noqa: E402
+    from detectron2.engine import default_argument_parser
 
-cfg.OUTPUT_DIR = "output/maskdino_square"
-os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
+    parser = default_argument_parser()
+    parser.add_argument("--eval_only", action="store_true")
+    parser.add_argument("--EVAL_FLAG", type=int, default=1)
 
-trainer = DefaultTrainer(cfg)
-trainer.resume_or_load(resume=False)
-trainer.train()
+    args = parser.parse_args()
 
-evaluator = COCOEvaluator("square_val", cfg, False, output_dir=cfg.OUTPUT_DIR)
-val_loader = build_detection_test_loader(cfg, "square_val")
-print(inference_on_dataset(trainer.model, val_loader, evaluator))
+    if not args.config_file:
+        args.config_file = os.path.relpath(generated_config, maskdino_repo)
+
+    main(args)

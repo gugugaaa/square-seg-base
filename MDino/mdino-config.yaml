@@ -1,0 +1,14 @@
+maskdino:
+  repo_path: "../MaskDINO"
+  base_config: "configs/coco/instance-segmentation/maskdino_R50_bs16_50ep_3s_dowsample1_2048.yaml"
+  pretrained_weights: "../models/maskdino_r50.pth"
+  output_dir: "../output/maskdino_square"
+  model_config: "results/ver6-mDino-3squares/config.yaml"
+  model_weights: "results/ver6-mDino-3squares/model_0001499.pth"
+datasets:
+  train_json: "../datasets/coco/3squares/instances_train.json"
+  val_json: "../datasets/coco/3squares/instances_val.json"
+  train_images: "../datasets/yolo/3squares/images/train"
+  val_images: "../datasets/yolo/3squares/images/val"
+  infer_val_json: "../datasets/hard_test/labels/instances_val.json"
+  infer_val_images: "../datasets/hard_test/images/val"

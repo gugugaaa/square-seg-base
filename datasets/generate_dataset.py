@@ -5,7 +5,7 @@ import os
 from shapely.geometry import Polygon
 
 # 数据集根目录变量
-DATASET_DIR = 'datasets/yolo/5squares'
+DATASET_DIR = '../datasets/yolo/3squares'
 
 def calculate_iou(box1, box2):
     """计算两个正方形的相对 IOU，检测包含或重叠关系"""
@@ -21,7 +21,7 @@ def calculate_iou(box1, box2):
     # 返回交集占较小多边形的比例，这样可以检测包含关系
     return intersection / min_area if min_area > 0 else 0
 
-def generate_image_and_labels(num_squares=5, img_size=640, is_train=True):
+def generate_image_and_labels(num_squares=3, img_size=640, is_train=True):
     img = np.ones((img_size, img_size, 3), dtype=np.uint8) * 255  # 白底
     labels = []  # 存储标签行
     boxes = []  # 存储已生成的正方形框
@@ -77,28 +77,52 @@ os.makedirs(f'{DATASET_DIR}/labels/val', exist_ok=True)
 os.makedirs(f'{DATASET_DIR}/labels/test', exist_ok=True)
 
 # 生成训练集 (800 张)
-for i in range(800):
+generated_count = 0
+attempt = 0
+while generated_count < 800:
     img, labels = generate_image_and_labels()
-    cv2.imwrite(f'{DATASET_DIR}/images/train/img_{i}.jpg', img)
-    with open(f'{DATASET_DIR}/labels/train/img_{i}.txt', 'w') as f:
-        for label in labels:
-            f.write(' '.join(f'{x:.6f}' for x in label) + '\n')
+    if len(labels) > 0:  # 确保至少生成了一个正方形
+        cv2.imwrite(f'{DATASET_DIR}/images/train/img_{generated_count}.jpg', img)
+        with open(f'{DATASET_DIR}/labels/train/img_{generated_count}.txt', 'w') as f:
+            for label in labels:
+                f.write(' '.join(f'{x:.6f}' for x in label) + '\n')
+        generated_count += 1
+    attempt += 1
+    if attempt > 10000:  # 防止无限循环
+        print(f"警告: 只生成了 {generated_count} 张训练图片")
+        break
 
 # 生成验证集 (200 张)
-for i in range(200):
+generated_count = 0
+attempt = 0
+while generated_count < 200:
     img, labels = generate_image_and_labels(is_train=False)
-    cv2.imwrite(f'{DATASET_DIR}/images/val/img_{i}.jpg', img)
-    with open(f'{DATASET_DIR}/labels/val/img_{i}.txt', 'w') as f:
-        for label in labels:
-            f.write(' '.join(f'{x:.6f}' for x in label) + '\n')
+    if len(labels) > 0:
+        cv2.imwrite(f'{DATASET_DIR}/images/val/img_{generated_count}.jpg', img)
+        with open(f'{DATASET_DIR}/labels/val/img_{generated_count}.txt', 'w') as f:
+            for label in labels:
+                f.write(' '.join(f'{x:.6f}' for x in label) + '\n')
+        generated_count += 1
+    attempt += 1
+    if attempt > 10000:
+        print(f"警告: 只生成了 {generated_count} 张验证图片")
+        break
 
 # 生成测试集 (100 张)
-for i in range(100):
+generated_count = 0
+attempt = 0
+while generated_count < 100:
     img, labels = generate_image_and_labels(is_train=False)
-    cv2.imwrite(f'{DATASET_DIR}/images/test/img_{i}.jpg', img)
-    with open(f'{DATASET_DIR}/labels/test/img_{i}.txt', 'w') as f:
-        for label in labels:
-            f.write(' '.join(f'{x:.6f}' for x in label) + '\n')
+    if len(labels) > 0:
+        cv2.imwrite(f'{DATASET_DIR}/images/test/img_{generated_count}.jpg', img)
+        with open(f'{DATASET_DIR}/labels/test/img_{generated_count}.txt', 'w') as f:
+            for label in labels:
+                f.write(' '.join(f'{x:.6f}' for x in label) + '\n')
+        generated_count += 1
+    attempt += 1
+    if attempt > 10000:
+        print(f"警告: 只生成了 {generated_count} 张测试图片")
+        break
 
 # 生成 data.yaml
 yaml_content = f"""
