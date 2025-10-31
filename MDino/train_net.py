@@ -39,6 +39,16 @@ from detectron2.evaluation import (
     SemSegEvaluator,
     verify_results,
 )
+from detectron2.evaluation import DatasetEvaluator
+class _DummyEvaluator(DatasetEvaluator):
+    def reset(self):
+        pass
+
+    def process(self, inputs, outputs):
+        pass
+
+    def evaluate(self):
+        return {}
 from detectron2.projects.deeplab import add_deeplab_config, build_lr_scheduler
 from detectron2.solver.build import maybe_add_gradient_clipping
 from detectron2.utils.logger import setup_logger
@@ -117,6 +127,17 @@ class Trainer(DefaultTrainer):
 
     @classmethod
     def build_evaluator(cls, cfg, dataset_name, output_folder=None):
+        # 首先检查是否存在标注，若没有则使用空评估器
+        try:
+            dataset_dicts = DatasetCatalog.get(dataset_name)
+            has_annotations = any(d.get("annotations") for d in dataset_dicts)
+        except Exception:
+            has_annotations = True
+        if not has_annotations:
+            logging.getLogger("detectron2").warning(
+                f"{dataset_name} 没有标注，跳过真实评估。")
+            return _DummyEvaluator
+
         """
         Create evaluator(s) for a given dataset.
         This uses the special metadata "evaluator_type" associated with each

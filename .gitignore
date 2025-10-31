@@ -5,3 +5,4 @@ models/
 dataset.zip
 results/
 detectron2/
+!datasets/hard_test
