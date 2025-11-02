@@ -1,14 +1,61 @@
 maskdino:
-  repo_path: "../MaskDINO"
-  base_config: "configs/coco/instance-segmentation/maskdino_R50_bs16_50ep_3s_dowsample1_2048.yaml"
-  pretrained_weights: "../models/maskdino_r50.pth"
-  output_dir: "../output/maskdino_square"
-  model_config: "results/ver6-mDino-3squares/config.yaml"
-  model_weights: "results/ver6-mDino-3squares/model_0001499.pth"
+  repo_path: "/root/MaskDINO"
+  base_config: "/root/MaskDINO/configs/coco/instance-segmentation/maskdino_R50_bs16_50ep_3s_dowsample1_2048.yaml"
+
+model:
+  model_dir: "/root/model"
+  output_dir: "/root/output/maskdino_square"
+  pretrained_weights: "maskdino_r50.pth"
+  model_weights: "model_1499.pth"
+  model_config: "model-config.yaml"
+
 datasets:
-  train_json: "../datasets/coco/3squares/instances_train.json"
-  val_json: "../datasets/coco/3squares/instances_val.json"
-  train_images: "../datasets/yolo/3squares/images/train"
-  val_images: "../datasets/yolo/3squares/images/val"
-  infer_val_json: "../datasets/hard_test/labels/instances_val.json"
-  infer_val_images: "../datasets/hard_test/images/val"
+  train_json: "/root/datasets/coco/3squares/instances_train.json"
+  val_json: "/root/datasets/coco/3squares/instances_val.json"
+  train_images: "/root/datasets/yolo/3squares/images/train"
+  val_images: "/root/datasets/yolo/3squares/images/val"
+  infer_val_json: "/root/datasets/hard_test/labels/instances_val.json"
+  infer_val_images: "/root/datasets/hard_test/images/val"
+
+runs:
+  visual_mdino:
+    input: "results/ver6-mDino-3squares/coco_instances_results.json"
+    output: "results/ver6-mDino-3squares/thresholded.json"
+    image_dir: "datasets/easy_test"
+    threshold: 0.21
+    img_fmt: "img_{image_id}.jpg"
+    visualize: True
+    batch: 4
+    top_k: 5
+    statistics: False
+
+train_config_template: |
+  _BASE_: "{base_config}"
+  DATASETS:
+    TRAIN: ("square_train",)
+    TEST: ("square_val",)
+  DATALOADER:
+    NUM_WORKERS: 4
+  MODEL:
+    WEIGHTS: "{pretrained_weights}"
+    SEM_SEG_HEAD:
+      NUM_CLASSES: 1
+  SOLVER:
+    IMS_PER_BATCH: 4
+    BASE_LR: 0.0001
+    MAX_ITER: 2000
+    STEPS: (1500, )
+    GAMMA: 0.1
+    WARMUP_ITERS: 100
+    AMP:
+      ENABLED: True
+    CHECKPOINT_PERIOD: 500
+  INPUT:
+    MASK_FORMAT: "polygon"
+    MIN_SIZE_TRAIN: (320, 352, 288)
+    MAX_SIZE_TRAIN: 384
+    MIN_SIZE_TEST: 320
+    MAX_SIZE_TEST: 384
+  TEST:
+    EVAL_PERIOD: 500
+  OUTPUT_DIR: "{output_dir}"

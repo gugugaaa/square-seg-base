@@ -3,7 +3,8 @@
 # Licensed under the Apache License, Version 2.0 [see LICENSE for details]
 # by Feng Li and Hao Zhang.
 # ------------------------------------------------------------------------
-# 这是官方的训练脚本
+# 这是官方的训练脚本，不要乱改
+# 新增了跳过验证的功能，对于无Ground Truth的验证集，避免计算报错。
 """
 MaskDINO Training Script based on Mask2Former.
 """

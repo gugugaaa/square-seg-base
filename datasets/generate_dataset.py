@@ -5,7 +5,7 @@ import os
 from shapely.geometry import Polygon
 
 # 数据集根目录变量
-DATASET_DIR = '../datasets/yolo/3squares'
+DATASET_DIR = 'datasets/yolo/3squares'
 
 def calculate_iou(box1, box2):
     """计算两个正方形的相对 IOU，检测包含或重叠关系"""
